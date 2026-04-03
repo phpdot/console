@@ -193,6 +193,32 @@ final class ApplicationTest extends TestCase
     }
 
     #[Test]
+    public function callWithOutputParameterCapturesOutput(): void
+    {
+        $app = new Application();
+        $app->add(new GreetCommand());
+
+        $output = new BufferedOutput();
+        $exitCode = $app->call('greet', ['name' => 'Test'], $output);
+
+        self::assertSame(0, $exitCode);
+        self::assertStringContainsString('Hello, Test!', $output->fetch());
+    }
+
+    #[Test]
+    public function wireCommandsDoesNotReInstantiateAlreadyWiredCommands(): void
+    {
+        $app = new Application();
+
+        $app->register([GreetCommand::class]);
+        $app->register([MathAddCommand::class]);
+
+        $symfony = $app->getSymfonyApplication();
+        self::assertTrue($symfony->has('greet'));
+        self::assertTrue($symfony->has('math:add'));
+    }
+
+    #[Test]
     public function containerIntegrationResolvesCommandsViaContainer(): void
     {
         $container = new class implements ContainerInterface {

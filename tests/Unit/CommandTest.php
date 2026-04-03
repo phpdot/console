@@ -205,4 +205,41 @@ final class CommandTest extends TestCase
 
         self::assertSame(0, $tester->getStatusCode());
     }
+
+    #[Test]
+    public function withProgressAcceptsExplicitTotalForGenerators(): void
+    {
+        /** @var list<int> $processed */
+        $processed = [];
+
+        $command = new class ($processed) extends \PHPdot\Console\Command {
+            /** @param list<int> $processed */
+            public function __construct(
+                private array &$processed,
+            ) {
+                parent::__construct();
+            }
+
+            protected function execute(\Symfony\Component\Console\Input\InputInterface $input, \Symfony\Component\Console\Output\OutputInterface $output): int
+            {
+                $generator = (function (): \Generator {
+                    yield 1;
+                    yield 2;
+                    yield 3;
+                })();
+
+                $this->withProgress($output, $generator, function (int $item, int $index): void {
+                    $this->processed[] = $item;
+                }, total: 3);
+
+                return self::SUCCESS;
+            }
+        };
+
+        $tester = new CommandTester($command);
+        $tester->execute([]);
+
+        self::assertSame([1, 2, 3], $processed);
+        self::assertSame(0, $tester->getStatusCode());
+    }
 }

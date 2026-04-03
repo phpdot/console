@@ -192,12 +192,15 @@ abstract class Command extends SymfonyCommand
      * @template T
      * @param iterable<T> $items
      * @param callable(T, int): void $callback
+     * @param int|null $total Total steps (required for generators, auto-detected for arrays/Countable)
      */
-    protected function withProgress(OutputInterface $output, iterable $items, callable $callback): void
+    protected function withProgress(OutputInterface $output, iterable $items, callable $callback, ?int $total = null): void
     {
         $progressBar = new \Symfony\Component\Console\Helper\ProgressBar($output);
 
-        if (is_array($items) || $items instanceof \Countable) {
+        if ($total !== null) {
+            $progressBar->setMaxSteps($total);
+        } elseif (is_array($items) || $items instanceof \Countable) {
             $progressBar->setMaxSteps(count($items));
         }
 

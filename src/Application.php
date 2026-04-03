@@ -28,6 +28,8 @@ final class Application
     /** @var array<string, class-string<SymfonyCommand>> */
     private array $commandMap = [];
 
+    private int $wiredCount = 0;
+
     /**
      * @param string $name Application name
      * @param string $version Application version
@@ -130,13 +132,12 @@ final class Application
      *
      * @param array<string, mixed> $arguments
      */
-    public function call(string $commandName, array $arguments = []): int
+    public function call(string $commandName, array $arguments = [], ?OutputInterface $output = null): int
     {
         $command = $this->symfony->find($commandName);
         $input = new ArrayInput($arguments);
-        $output = new BufferedOutput();
 
-        return $command->run($input, $output);
+        return $command->run($input, $output ?? new BufferedOutput());
     }
 
     /**
@@ -153,9 +154,13 @@ final class Application
             $loader = new ContainerCommandLoader($this->container, $this->commandMap);
             $this->symfony->setCommandLoader($loader);
         } else {
-            foreach ($this->commandMap as $class) {
+            $newCommands = array_slice($this->commandMap, $this->wiredCount, preserve_keys: true);
+
+            foreach ($newCommands as $class) {
                 $this->symfony->add(new $class());
             }
+
+            $this->wiredCount = count($this->commandMap);
         }
     }
 }
