@@ -12,24 +12,35 @@ composer require phpdot/console
 
 ```mermaid
 graph TD
-    APP[Application] --> CCL[ContainerCommandLoader]
-    APP --> CD[CommandDiscovery]
-    APP --> CC[CommandCache]
-    APP --> SA[Symfony Application]
+    APP[Application] -->|wraps| SA[Symfony Application]
+    APP -->|discover| CD[CommandDiscovery]
+    APP -->|read/write| CC[CommandCache]
+    APP -->|wires| CCL[ContainerCommandLoader]
 
-    CCL --> PSR[PSR-11 Container]
-    CD --> REF[Reflection + AsCommand]
+    CD -->|PhpToken + Reflection| FILES[".php files + #[AsCommand]"]
+    CD -->|produces| MAP["Command Map<br/>name → class"]
+    CC -->|caches| MAP
 
-    CMD[Command] --> SA
+    CCL -->|implements| CLI[CommandLoaderInterface]
+    CCL -->|resolves via| PSR[PSR-11 Container]
+    CCL -->|uses| MAP
+
+    SA -->|runs| CMD[Command instances]
+    CMD -->|extends| BASE[PHPdot Command]
+    BASE -->|extends| SC[Symfony Command]
 
     style APP fill:#2d3748,color:#fff
-    style CMD fill:#2d3748,color:#fff
+    style BASE fill:#2d3748,color:#fff
     style CCL fill:#4a5568,color:#fff
     style CD fill:#4a5568,color:#fff
     style CC fill:#4a5568,color:#fff
     style SA fill:#718096,color:#fff
     style PSR fill:#718096,color:#fff
-    style REF fill:#718096,color:#fff
+    style SC fill:#718096,color:#fff
+    style MAP fill:#718096,color:#fff
+    style FILES fill:#718096,color:#fff
+    style CLI fill:#718096,color:#fff
+    style CMD fill:#718096,color:#fff
 ```
 
 ## Usage
