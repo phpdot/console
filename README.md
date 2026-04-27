@@ -17,7 +17,7 @@ graph TD
     APP -->|read/write| CC[CommandCache]
     APP -->|wires| CCL[ContainerCommandLoader]
 
-    CD -->|PhpToken + Reflection| FILES[".php files + #[AsCommand]"]
+    CD -->|phpdot/attribute Scanner| FILES[".php files + #[AsCommand]"]
     CD -->|produces| MAP["Command Map<br/>name → class"]
     CC -->|caches| MAP
 
@@ -49,8 +49,9 @@ graph TD
 
 ```php
 use PHPdot\Console\Application;
+use PHPdot\Console\ConsoleConfig;
 
-$app = new Application(name: 'MyApp', version: '1.0.0');
+$app = new Application(new ConsoleConfig(name: 'MyApp', version: '1.0.0'));
 $app->add(new GreetCommand());
 $app->run();
 ```
@@ -59,36 +60,57 @@ $app->run();
 
 ```php
 use PHPdot\Console\Application;
-use PHPdot\Console\Cache\CommandCache;
+use PHPdot\Console\ConsoleConfig;
 
 $app = new Application(
-    name: 'MyApp',
-    version: '1.0.0',
-    cache: new CommandCache(__DIR__ . '/var/cache/commands.php'),
+    new ConsoleConfig(
+        name: 'MyApp',
+        version: '1.0.0',
+        cachePath: __DIR__ . '/var/cache/commands.php',
+    ),
 );
 
 $app->discover([__DIR__ . '/src/Command']);
 $app->run();
 ```
+
+`cachePath` makes `Application` build its own `CommandCache` automatically. Pass an explicit `CommandCache` instance via the third constructor argument when you need a custom one.
 
 ### With DI container
 
 ```php
 use PHPdot\Console\Application;
-use PHPdot\Console\Cache\CommandCache;
+use PHPdot\Console\ConsoleConfig;
 
 $container = /* any PSR-11 container */;
 
 $app = new Application(
-    name: 'MyApp',
-    version: '1.0.0',
+    config: new ConsoleConfig(
+        name: 'MyApp',
+        version: '1.0.0',
+        cachePath: __DIR__ . '/var/cache/commands.php',
+    ),
     container: $container,
-    cache: new CommandCache(__DIR__ . '/var/cache/commands.php'),
 );
 
 $app->discover([__DIR__ . '/src/Command']);
 $app->run();
 ```
+
+### Auto-binding via phpdot/config
+
+`ConsoleConfig` carries `#[Config('console')]`, so `phpdot/config` hydrates it from `config/console.php`:
+
+```php
+// config/console.php
+return [
+    'name'      => 'MyApp',
+    'version'   => '1.0.0',
+    'cachePath' => __DIR__ . '/../var/cache/commands.php',
+];
+```
+
+A future console provider will resolve the DTO from `Configuration::dto()` and inject it into `Application` automatically. Until then, construct the DTO yourself.
 
 ### Defining commands
 
@@ -176,9 +198,9 @@ $exitCode = $app->call('migrate', ['--force' => true]);
 
 ## Discovery
 
-`CommandDiscovery` scans directories for classes with `#[AsCommand]` that extend `Symfony\Component\Console\Command\Command`. Uses `PhpToken::tokenize()` for class extraction and `ReflectionClass` for attribute reading.
+`CommandDiscovery` scans directories for classes with `#[AsCommand]` that extend `Symfony\Component\Console\Command\Command`. Class discovery is delegated to [`phpdot/attribute`](https://github.com/phpdot/attribute), which handles tokenization, namespace resolution, and attribute reading.
 
-Skips: interfaces, traits, enums, abstract classes, anonymous classes, classes without `#[AsCommand]`.
+Skips: interfaces, traits, enums, abstract classes, classes without `#[AsCommand]`, and classes that don't extend Symfony's `Command`.
 
 ### Cache format
 
@@ -195,6 +217,9 @@ return [
 - PHP >= 8.3
 - symfony/console ^7.0
 - psr/container ^2.0
+- phpdot/attribute ^1.0
+
+`phpdot/container` is suggested (used to expose `#[Config('console')]` to a phpdot framework boot). Standalone consumers don't need it — the attribute is inert until reflected.
 
 ## License
 

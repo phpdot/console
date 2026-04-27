@@ -25,24 +25,25 @@ final class Application
 {
     private readonly SymfonyApplication $symfony;
 
+    private readonly ?CommandCache $cache;
+
     /** @var array<string, class-string<SymfonyCommand>> */
     private array $commandMap = [];
 
     private int $wiredCount = 0;
 
     /**
-     * @param string $name Application name
-     * @param string $version Application version
+     * @param ConsoleConfig $config Static configuration (name, version, cache path)
      * @param ContainerInterface|null $container PSR-11 container for resolving commands
-     * @param CommandCache|null $cache Cache for discovered command maps
+     * @param CommandCache|null $cache Explicit cache instance; falls back to one built from `$config->cachePath` if non-empty
      */
     public function __construct(
-        string $name = 'PHPdot',
-        string $version = '1.0.0',
+        ConsoleConfig $config = new ConsoleConfig(),
         private readonly ?ContainerInterface $container = null,
-        private readonly ?CommandCache $cache = null,
+        ?CommandCache $cache = null,
     ) {
-        $this->symfony = new SymfonyApplication($name, $version);
+        $this->symfony = new SymfonyApplication($config->name, $config->version);
+        $this->cache = $cache ?? ($config->cachePath !== '' ? new CommandCache($config->cachePath) : null);
     }
 
     /**

@@ -6,6 +6,7 @@ namespace PHPdot\Console\Tests\Unit;
 
 use PHPdot\Console\Application;
 use PHPdot\Console\Cache\CommandCache;
+use PHPdot\Console\ConsoleConfig;
 use PHPdot\Console\Tests\Fixtures\GreetCommand;
 use PHPdot\Console\Tests\Fixtures\MathAddCommand;
 use PHPUnit\Framework\Attributes\Test;
@@ -49,7 +50,7 @@ final class ApplicationTest extends TestCase
     #[Test]
     public function constructorCreatesApplicationWithNameAndVersion(): void
     {
-        $app = new Application('TestApp', '3.0.0');
+        $app = new Application(new ConsoleConfig(name: 'TestApp', version: '3.0.0'));
 
         $symfony = $app->getSymfonyApplication();
 
